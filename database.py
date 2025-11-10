@@ -17,14 +17,14 @@ def get_connection():
     return Conn
 
 # Insert match data function
-def insert_match_data(match_id, teams, location, match_type, winner, video_path, timestamps):
+def insert_match_data(match_id, teams, location, match_type, winner, video_path, match_timestamp):
     conn = get_connection()
     cursor = conn.cursor()
     insert_query = """
-    INSERT INTO matches (match_id, teams, location, match_type, winner, video_path, timestamps)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """
-    cursor.execute(insert_query, (match_id, teams, location, match_type, winner, video_path, timestamps))
+        INSERT INTO matches (match_id, teams, location, match_type, winner, video_path, match_timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+    cursor.execute(insert_query, (match_id, teams, location, match_type, winner, video_path, match_timestamp))
     conn.commit()
     cursor.close()
     conn.close()
