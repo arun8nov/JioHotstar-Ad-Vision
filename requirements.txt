@@ -1,0 +1,21 @@
+# Dataframe packages
+pandas
+numpy
+
+# Data visualization packages
+matplotlib
+seaborn
+plotly
+
+# Frontend packages
+streamlit
+
+# Video processing
+opencv-python
+
+# SQL packages
+mysql-connector-python
+pymysql
+SQLAlchemy
+
+dotenv
