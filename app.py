@@ -4,8 +4,10 @@ from dotenv import load_dotenv
 import os
 import datetime
 import time
-from database import insert_match_data
+from database import insert_match_data,Query,Query_a_Table
 
+st.set_page_config(page_title = "joihotstar Ads",
+                   page_icon = "Jio",layout = "wide")
 
 def MatchDataEntry():
 
@@ -42,6 +44,15 @@ def MatchDataEntry():
                 st.error(f"Error inserting data: {e}")
         else:
             st.error("Please fill out all required fields.")
+    st.subheader("Current Tables in Database")
+    tables = Query("SHOW TABLES;")
+    st.text(','.join([table[0] for table in tables]))
+    st.subheader("Matches Table Data")
+    df = Query_a_Table("SELECT * FROM matches;")
+    st.dataframe(df)
+
+
+
 
 st.navigation([MatchDataEntry],position='top').run()
 

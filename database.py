@@ -1,6 +1,7 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
+import pandas as pd
 
 # Load environment variables
 load_dotenv()
@@ -28,3 +29,16 @@ def insert_match_data(match_id, teams, location, match_type, winner, video_path,
     conn.commit()
     cursor.close()
     conn.close()
+
+def Query_a_Table(Q):
+    df = pd.read_sql(Q,get_connection())
+    return df
+
+def Query(Q):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(Q)
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return rows
