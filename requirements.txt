@@ -19,3 +19,6 @@ pymysql
 SQLAlchemy
 
 dotenv
+
+# Yolo
+ultralytics
