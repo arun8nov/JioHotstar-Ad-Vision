@@ -22,3 +22,12 @@ dotenv
 
 # Yolo
 ultralytics
+
+# Rag
+langchain
+langchain_community
+langchain-ollama
+ollama
+
+# Google Gen Ai
+google-generativeai

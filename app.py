@@ -5,7 +5,9 @@ import os
 import datetime
 import time
 from database import insert_match_data,Query,Query_a_Table
-from Ad_track import Ad_tracking
+from track import Traking
+
+Track = Traking()
 
 st.set_page_config(page_title = "joihotstar Ads",
                    page_icon = "Jio",layout = "wide")
@@ -50,7 +52,7 @@ def MatchDataEntry():
                 st.video(video_file)
                 # Run Ad Tracking
                 with st.spinner("Running Ad Tracking..."):
-                    Ad_tracking(video_path)
+                    Track.Ad_tracking(video_path)
                 st.success("Ad Tracking completed and results saved.")
                 
             except Exception as e:
