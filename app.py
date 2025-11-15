@@ -54,6 +54,10 @@ def MatchDataEntry():
                 with st.spinner("Running Ad Tracking..."):
                     Track.Ad_tracking(video_path)
                 st.success("Ad Tracking completed and results saved.")
+                # Run Class Frame Extraction
+                with st.spinner("Extracting Frames by Class..."):
+                    Track.class_frame_extraction(video_path,folder_path)
+                st.success("Frames extracted by class and saved.")
                 
             except Exception as e:
                 st.error(f"Error inserting data: {e}")
@@ -69,7 +73,6 @@ def MatchDataEntry():
     st.subheader("Matches Table Data")
     df = Query_a_Table("SELECT * FROM matches;")
     st.dataframe(df)
-
 
 
 

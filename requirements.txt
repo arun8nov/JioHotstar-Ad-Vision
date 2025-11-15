@@ -17,6 +17,7 @@ opencv-python
 mysql-connector-python
 pymysql
 SQLAlchemy
+cryptography # authentication plug in
 
 dotenv
 
@@ -27,7 +28,5 @@ ultralytics
 langchain
 langchain_community
 langchain-ollama
+langchain-experimental
 ollama
-
-# Google Gen Ai
-google-generativeai

@@ -1,19 +1,19 @@
 from ultralytics import YOLO
 import csv
+import cv2
+import os
+
+model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
+model = YOLO(model_path)
 
 class Traking:
     def __init__(self):
         pass
 
     def Ad_tracking(self,video_path):
-        # Paths
-        model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
+        
         csv_path = video_path.replace(".mp4", "_ad_tracking_results.csv")
-
-        # Load model
-        model = YOLO(model_path)
-
-            
+ 
         # Run tracking and get generator of results
         results = model.track(source=video_path, save=True, stream=True, show=False)
 
@@ -62,3 +62,36 @@ class Traking:
         print(f"Tracking and CSV export complete! Saved as {csv_path}")
 
 
+    def class_frame_extraction(self,video_path,folder_path):
+        output_base_folder = folder_path+"/extracted_frames"
+        if not os.path.exists(output_base_folder):
+            os.makedirs(output_base_folder)
+
+        cap = cv2.VideoCapture(video_path)
+        frame_index = 0
+
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            results = model.track(frame)
+            boxes = results[0].boxes
+
+            # Get all detected class ids in this frame
+            detected_classes = set(int(cls) for cls in boxes.cls)
+
+            for class_id in detected_classes:
+                class_name = results[0].names[class_id]
+                class_folder = os.path.join(output_base_folder, class_name)
+                os.makedirs(class_folder, exist_ok=True)
+                filename = os.path.join(class_folder, f"frame_{frame_index:06d}.jpg")
+                annotated_frame = results[0].plot()
+                cv2.imwrite(filename, annotated_frame)
+
+            frame_index += 1
+
+        cap.release()
+        print(f"Frame extraction complete! Frames saved in {output_base_folder}")
+
+        
