@@ -52,12 +52,9 @@ def MatchDataEntry():
                 st.video(video_file)
                 # Run Ad Tracking
                 with st.spinner("Running Ad Tracking..."):
-                    Track.Ad_tracking(video_path)
+                    Track.ad_tracking_and_classwise_extraction(video_path,folder_path)
                 st.success("Ad Tracking completed and results saved.")
-                # Run Class Frame Extraction
-                with st.spinner("Extracting Frames by Class..."):
-                    Track.class_frame_extraction(video_path,folder_path)
-                st.success("Frames extracted by class and saved.")
+               
                 
             except Exception as e:
                 st.error(f"Error inserting data: {e}")
