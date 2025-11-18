@@ -17,7 +17,7 @@ class Traking:
         os.makedirs(output_base_folder, exist_ok=True)
 
         # Get total frames
-        cap = cv2.VideoCapture(video_path)
+        cap = cv2.VideoCapture(video_path) # Open video
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
         # Open CSV for writing
@@ -28,18 +28,19 @@ class Traking:
                 "Total_Frames",
                 "Detections",
                 "Time (ms)"
-            ])
+            ]) # Write header
             frame_index = 0
-
-            while cap.isOpened():
+            # Initialize video capture for processing
+            while cap.isOpened(): # Read frames
                 ret, frame = cap.read()
                 if not ret:
                     break
-
+                # Perform tracking
                 results = model.track(frame)
-                boxes = results[0].boxes
+                boxes = results[0].boxes 
 
                 names = []
+                # Prepare detection string
                 if hasattr(results[0], "names") and boxes is not None:
                     cls_list = boxes.cls.tolist()
                     for c in cls_list:
@@ -61,17 +62,17 @@ class Traking:
                 ])
 
                 # Save frames class-wise
-                detected_classes = set(int(cls) for cls in boxes.cls) if boxes is not None else set()
-                for class_id in detected_classes:
-                    class_name = results[0].names[class_id]
-                    class_folder = os.path.join(output_base_folder, class_name)
-                    os.makedirs(class_folder, exist_ok=True)
-                    filename = os.path.join(class_folder, f"frame_{frame_index:06d}.jpg")
-                    annotated_frame = results[0].plot()
-                    cv2.imwrite(filename, annotated_frame)
+                detected_classes = set(int(cls) for cls in boxes.cls) if boxes is not None else set() # Unique class IDs
+                for class_id in detected_classes: # Iterate over unique class IDs
+                    class_name = results[0].names[class_id] # Get class name
+                    class_folder = os.path.join(output_base_folder, class_name) # Class folder
+                    os.makedirs(class_folder, exist_ok=True) # Create folder if not exists
+                    filename = os.path.join(class_folder, f"frame_{frame_index:06d}.jpg") # Frame filename
+                    annotated_frame = results[0].plot() # Annotate frame
+                    cv2.imwrite(filename, annotated_frame) # Save frame
 
                 frame_index += 1
 
-            cap.release()
+            cap.release() # Release video capture
         print(f"Process complete! CSV: {csv_path}, Frames: {output_base_folder}")
 
