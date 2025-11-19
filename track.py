@@ -1,78 +1,79 @@
 from ultralytics import YOLO
-import csv
 import cv2
+import pandas as pd
 import os
 
 model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
 model = YOLO(model_path)
 
-class Traking:
+class Tracking:
     def __init__(self):
         pass
 
     def ad_tracking_and_classwise_extraction(self, video_path, folder_path):
-        # Setup paths
-        csv_path = video_path.replace(".mp4", "_ad_tracking_results.csv")
-        output_base_folder = os.path.join(folder_path, "extracted_frames")
-        os.makedirs(output_base_folder, exist_ok=True)
 
-        # Get total frames
-        cap = cv2.VideoCapture(video_path) # Open video
+        # Folder and file setup
+        output_csv = video_path.replace(".mp4", "_ad_tracking_details.csv")
+        output_frames_root = os.path.join(folder_path, "extracted_frames")
+        os.makedirs(output_frames_root, exist_ok=True)
+
+        # Open video file for processing
+        cap = cv2.VideoCapture(video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
 
-        # Open CSV for writing
-        with open(csv_path, "w", newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow([
-                "Frame",
-                "Total_Frames",
-                "Detections",
-                "Time (ms)"
-            ]) # Write header
-            frame_index = 0
-            # Initialize video capture for processing
-            while cap.isOpened(): # Read frames
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                # Perform tracking
-                results = model.track(frame)
-                boxes = results[0].boxes 
+        results_list = []
+        frame_no = 0
+        # Process video frames
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-                names = []
-                # Prepare detection string
-                if hasattr(results[0], "names") and boxes is not None:
-                    cls_list = boxes.cls.tolist()
-                    for c in cls_list:
-                        names.append(results[0].names[int(c)])
-                    detection_str = ", ".join(names) if names else "(no detections)"
-                else:
-                    detection_str = "(no detections)"
+            frame_no += 1
 
-                # Get inference time
-                inference_time = getattr(results[0], "speed", {}).get("inference", None)
-                inference_ms = f"{inference_time:.1f}" if inference_time is not None else "-"
+            # YOLO Tracking
+            results = model.track(frame, verbose=False)
+            boxes = results[0].boxes
+            # If detections exist, process them
+            if boxes is not None and len(boxes) > 0:
+                annotated_frame = results[0].plot()
 
-                # Write to CSV
-                writer.writerow([
-                    frame_index + 1,
-                    total_frames,
-                    detection_str,
-                    inference_ms
-                ])
+                for box in boxes:
+                    cls_id = int(box.cls[0].item())
+                    conf = float(box.conf[0].item())
+                    x1, y1, x2, y2 = box.xyxy[0].tolist()
 
-                # Save frames class-wise
-                detected_classes = set(int(cls) for cls in boxes.cls) if boxes is not None else set() # Unique class IDs
-                for class_id in detected_classes: # Iterate over unique class IDs
-                    class_name = results[0].names[class_id] # Get class name
-                    class_folder = os.path.join(output_base_folder, class_name) # Class folder
-                    os.makedirs(class_folder, exist_ok=True) # Create folder if not exists
-                    filename = os.path.join(class_folder, f"frame_{frame_index:06d}.jpg") # Frame filename
-                    annotated_frame = results[0].plot() # Annotate frame
-                    cv2.imwrite(filename, annotated_frame) # Save frame
+                    class_name = results[0].names[cls_id]
+                    timestamp_sec = frame_no / fps
 
-                frame_index += 1
+                    # Record detection details in results list
+                    results_list.append({
+                        "frame": frame_no,
+                        "time_sec": round(timestamp_sec, 2),
+                        "total_frames": total_frames,
+                        "brand": class_name,
+                        "confidence": round(conf, 3),
+                        "x1": int(x1), "y1": int(y1),
+                        "x2": int(x2), "y2": int(y2)
+                    })
 
-            cap.release() # Release video capture
-        print(f"Process complete! CSV: {csv_path}, Frames: {output_base_folder}")
+                    ## Save annotated frames class-wise
+                    class_folder = os.path.join(output_frames_root, class_name)
+                    os.makedirs(class_folder, exist_ok=True)
 
+                    filename = os.path.join(
+                        class_folder,
+                        f"frame_{frame_no:06d}.jpg"
+                    )
+                    cv2.imwrite(filename, annotated_frame)
+
+        cap.release()
+
+        # Save CSV
+        df = pd.DataFrame(results_list)
+        df.to_csv(output_csv, index=False)
+
+        print("✔ Process Completed!")
+        print(f"CSV Saved → {output_csv}")
+        print(f"Frames Saved → {output_frames_root}")

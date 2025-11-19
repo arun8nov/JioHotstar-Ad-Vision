@@ -5,9 +5,9 @@ import os
 import datetime
 import time
 from database import insert_match_data,Query,Query_a_Table
-from track import Traking
+from track import Tracking
 
-Track = Traking()
+Track = Tracking()
 
 st.set_page_config(page_title = "joihotstar Ads",
                    page_icon = "Jio",layout = "wide")
