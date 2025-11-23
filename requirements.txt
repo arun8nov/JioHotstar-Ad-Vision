@@ -30,3 +30,6 @@ langchain_community
 langchain-ollama
 langchain-experimental
 ollama
+
+# AI Chat
+google-generativeai
