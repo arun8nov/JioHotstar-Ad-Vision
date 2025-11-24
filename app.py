@@ -6,7 +6,7 @@ import time
 import ollama
 from database import insert_match_data,Query,Query_a_Table
 from track import Tracking
-from chat_bot_integration import get_db
+from chat_bot_integration import get_db,query_result
 
 Track = Tracking()
 
@@ -62,9 +62,6 @@ def MatchDataEntry():
         else:
             st.error("Please fill out all required fields.")
 
-
-
-
     st.subheader("Current Tables in Database")
     tables = Query("SHOW TABLES;")
     st.text(','.join([table[0] for table in tables]))
@@ -79,12 +76,15 @@ def chat_interface():
     st.info("Databases Tables:")
     tables_names = db.get_table_names()
     st.table(tables_names,border='horizontal')
-
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {"role": "system", "content": f"You are a SQL query generator. Generate only SQL queries based on user input.only return SQL query don't explain anything."}
+        ]
     # User input
     if prompt := st.chat_input("Ask a question about the database"):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
-            st.write(prompt)
+            st.write(prompt)    
 
         with st.chat_message("assistant"):
             with st.spinner("Generating SQL query..."):
@@ -92,14 +92,13 @@ def chat_interface():
                     response = ollama.chat(model=model_name, messages=st.session_state.messages)
                     sql_query = response.message.content
                     st.write(sql_query)
-                    st.session_state.messages.append({"role": "assistant", "content": sql_query})
+                    #st.session_state.messages.append({"role": "assistant", "content": sql_query})
 
                     # Run the generated query on DB and display result
-                    query_result = db.run(sql_query)
-                    st.markdown("**Query Result:**")
-                    st.write(query_result)
+                    #query_result = db.run(sql_query)
+                    
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error("Error")
 
 st.navigation([MatchDataEntry,chat_interface],position='top').run()
 
