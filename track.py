@@ -2,6 +2,17 @@ from ultralytics import YOLO
 import cv2
 import pandas as pd
 import os
+from dotenv import load_dotenv
+load_dotenv()
+import sqlalchemy
+
+db_user = os.getenv("db_user")
+db_password = os.getenv("db_password")
+db_host = os.getenv("db_host")
+db_port = os.getenv("db_port")
+db_name = os.getenv("db_name")
+
+engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
 
 model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
 model = YOLO(model_path)
@@ -10,7 +21,7 @@ class Tracking:
     def __init__(self):
         pass
 
-    def ad_tracking_and_classwise_extraction(self, video_path, folder_path):
+    def ad_tracking_and_classwise_extraction(self,match_id, video_path, folder_path):
 
         # Folder and file setup
         output_csv = video_path.replace(".mp4", "_ad_tracking_details.csv")
@@ -49,6 +60,7 @@ class Tracking:
 
                     # Record detection details in results list
                     results_list.append({
+                        "match_id": match_id,
                         "frame": frame_no,
                         "time_sec": round(timestamp_sec, 2),
                         "total_frames": total_frames,
@@ -73,6 +85,7 @@ class Tracking:
         # Save CSV
         df = pd.DataFrame(results_list)
         df.to_csv(output_csv, index=False)
+        df.to_sql("brand_detections", engine, if_exists="append", index=False)
 
         print("✔ Process Completed!")
         print(f"CSV Saved → {output_csv}")

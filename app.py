@@ -1,11 +1,12 @@
 import streamlit as st
-import mysql.connector
 from dotenv import load_dotenv
 import os
 import datetime
 import time
+import ollama
 from database import insert_match_data,Query,Query_a_Table
 from track import Tracking
+from chat_bot_integration import get_db
 
 Track = Tracking()
 
@@ -52,7 +53,7 @@ def MatchDataEntry():
                 st.video(video_file)
                 # Run Ad Tracking
                 with st.spinner("Running Ad Tracking..."):
-                    Track.ad_tracking_and_classwise_extraction(video_path,folder_path)
+                    Track.ad_tracking_and_classwise_extraction(match_id,video_path,folder_path)
                 st.success("Ad Tracking completed and results saved.")
                
                 
@@ -71,9 +72,36 @@ def MatchDataEntry():
     df = Query_a_Table("SELECT * FROM matches;")
     st.dataframe(df)
 
+def chat_interface():
+    model_name = "llama3.2:1b"  # replace with your actual model name
+    db = get_db()   
 
+    st.info("Databases Tables:")
+    tables_names = db.get_table_names()
+    st.table(tables_names,border='horizontal')
 
-st.navigation([MatchDataEntry],position='top').run()
+    # User input
+    if prompt := st.chat_input("Ask a question about the database"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner("Generating SQL query..."):
+                try:
+                    response = ollama.chat(model=model_name, messages=st.session_state.messages)
+                    sql_query = response.message.content
+                    st.write(sql_query)
+                    st.session_state.messages.append({"role": "assistant", "content": sql_query})
+
+                    # Run the generated query on DB and display result
+                    query_result = db.run(sql_query)
+                    st.markdown("**Query Result:**")
+                    st.write(query_result)
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+st.navigation([MatchDataEntry,chat_interface],position='top').run()
 
 
 
