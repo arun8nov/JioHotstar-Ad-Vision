@@ -7,6 +7,8 @@ from langchain_community.utilities import SQLDatabase
 import ollama
 import cv2
 from ultralytics import YOLO
+from langchain_google_genai import ChatGoogleGenerativeAI
+from google import genai
 
 # Load environment variables
 load_dotenv()
@@ -16,6 +18,7 @@ db_user = os.getenv("db_user")
 db_password = os.getenv("db_password")
 db_port = os.getenv("db_port")
 db_name = os.getenv("db_name")
+api_key = os.getenv("api_key")
 
 #engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
 #model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
@@ -25,8 +28,8 @@ class Database_Intergration:
 
     def __init__(self):
         pass
-      
-    
+
+
     # Database connection
     def get_connection(self):
         Conn =  mysql.connector.connect(
@@ -37,8 +40,8 @@ class Database_Intergration:
                 database=db_name
             )
         return Conn
-      
-    
+
+
     # Insert match data function
     def insert_match_data(self,match_id, teams, location, match_type, winner, video_path, match_timestamp):
         conn = self.get_connection()
@@ -172,7 +175,7 @@ class Tracking:
         print("✔ Process Completed!")
         print(f"CSV Saved → {output_csv}")
         print(f"Frames Saved → {output_frames_root}")
-  
+
 
 
 class lang_chain_db:
@@ -189,6 +192,29 @@ class lang_chain_db:
           {"role": "system", "content": f"You are a helpful assistant that translates database query results into simple natural language. Given previouse query from user : {chat_query}"},
           {"role": "user", "content": f"Translate this database query result into a clear explanation: {query_result}"}
       ]
-      
+
       response = ollama.chat(model=model_name, messages=messages)
       return response.message.content
+  
+class GenAi_Chat:
+  def __init__(self):
+    pass
+  
+  llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
+  db = lang_chain_db().get_db()
+    
+  def sql_query_gen(self,user_input):
+    messages = [{"role": "system", 
+    "content": f"You are a sql query generator. Generate a sql query based on the user input. only return the sql query.Only single query output,without any explaination or any other text. Tabel info is given below: {self.db.get_table_info()}"}]
+    messages.append({"role": "user", "content": user_input})
+    sql_invoke = self.llm.invoke(messages)
+    sql_query = str(sql_query).replace("```","")
+    sql_query = str(sql_invoke.content).replace("```sql","")
+    return sql_query
+  
+  def NL_Response(self,sql_query,db_result):
+    message = [{"role":"system","content":f"You are an expert an analyse the data from database. You will given sql query {sql_query}, output of a sql quey. you have to analyse the data . The Output of the sql query: {db_result} "}]
+    message.append({"role":"user","content":"Give 10 line summary in markdown code"})
+    response = self.llm.invoke(message)
+    response = response.content
+    return response
