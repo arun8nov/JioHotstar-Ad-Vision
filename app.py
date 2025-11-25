@@ -76,29 +76,21 @@ def chat_interface():
     st.info("Databases Tables:")
     tables_names = db.get_table_names()
     st.table(tables_names,border='horizontal')
-    if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {"role": "system", "content": f"You are a SQL query generator. Generate only SQL queries based on user input.only return SQL query don't explain anything."}
-        ]
-    # User input
-    if prompt := st.chat_input("Ask a question about the database"):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.write(prompt)    
-
-        with st.chat_message("assistant"):
-            with st.spinner("Generating SQL query..."):
-                try:
-                    response = ollama.chat(model=model_name, messages=st.session_state.messages)
-                    sql_query = response.message.content
-                    st.write(sql_query)
-                    #st.session_state.messages.append({"role": "assistant", "content": sql_query})
-
-                    # Run the generated query on DB and display result
-                    #query_result = db.run(sql_query)
-                    
-                except Exception as e:
-                    st.error("Error")
+    
+    messages = [{"role": "system", 
+    "content": f"You are a sql query generator. Generate a sql query based on the user input. only return the sql query.Only single query output,without any explaination or any other text. Tabel info is given below: {db.get_table_info()}"}]
+    user_input = st.chat_input("Ask a question about the database")
+    if user_input:
+        with st.spinner("Generating SQL query..."):
+            messages.append({"role": "user", "content": user_input})
+            response = ollama.chat(model=model_name, messages=messages)
+            sql_query = response.message.content
+            st.write(sql_query)
+            print(sql_query)
+            result = Query_a_Table(sql_query)
+            st.dataframe(result)
+            ans = query_result(chat_query=user_input,query_result=result)
+            st.markdown(ans)
 
 st.navigation([MatchDataEntry,chat_interface],position='top').run()
 

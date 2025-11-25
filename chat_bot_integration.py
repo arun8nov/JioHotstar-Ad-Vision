@@ -17,9 +17,9 @@ def get_db():
     db = SQLDatabase.from_uri(db_path)
     return db
 
-def query_result(query_result, model_name="llama3.2:1b"):
+def query_result(chat_query,query_result, model_name="llama3.2:1b"):
     messages = [
-        {"role": "system", "content": "You are a helpful assistant that translates database query results into simple natural language."},
+        {"role": "system", "content": f"You are a helpful assistant that translates database query results into simple natural language. Given previouse query from user : {chat_query}"},
         {"role": "user", "content": f"Translate this database query result into a clear explanation: {query_result}"}
     ]
     
