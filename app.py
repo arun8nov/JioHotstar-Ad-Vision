@@ -1,3 +1,4 @@
+from polars import sql
 import streamlit as st
 from dotenv import load_dotenv
 import os
@@ -70,7 +71,7 @@ def MatchDataEntry():
     st.dataframe(df)
 
 def chat_interface():
-    model_name = "llama3.2:1b"  # replace with your actual model name
+    model_name = "llama3.2:latest"  # replace with your actual model name
     db = get_db()   
 
     st.info("Databases Tables:")
@@ -86,6 +87,7 @@ def chat_interface():
             response = ollama.chat(model=model_name, messages=messages)
             sql_query = response.message.content
             st.write(sql_query)
+            sql_query = sql_query.replace('```sql',' ').replace('```','').strip()
             print(sql_query)
             result = Query_a_Table(sql_query)
             st.dataframe(result)
