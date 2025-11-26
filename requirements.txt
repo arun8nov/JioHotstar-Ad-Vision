@@ -27,9 +27,14 @@ ultralytics
 # Rag
 langchain
 langchain_community
-langchain-ollama
+langchain_ollama
 langchain-experimental
 ollama
+langchain_google_genai
+langgraph
+langchain_core
+pydantic
 
 # AI Chat
 google-generativeai
+google-genai

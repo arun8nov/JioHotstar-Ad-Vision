@@ -1,8 +1,10 @@
+from turtle import st
 import mysql.connector
 import sqlalchemy
 from dotenv import load_dotenv
 import os
 import pandas as pd
+import streamlit as st
 from langchain_community.utilities import SQLDatabase
 import ollama
 import cv2
@@ -20,9 +22,9 @@ db_port = os.getenv("db_port")
 db_name = os.getenv("db_name")
 api_key = os.getenv("api_key")
 
-#engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
-#model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
-model = YOLO("")
+engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
+model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
+model = YOLO(model_path)
 
 class Database_Intergration:
 
@@ -41,6 +43,9 @@ class Database_Intergration:
             )
         return Conn
 
+    def sql_engine(self):
+        engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
+        return engine
 
     # Insert match data function
     def insert_match_data(self,match_id, teams, location, match_type, winner, video_path, match_timestamp):
@@ -69,38 +74,44 @@ class Database_Intergration:
       conn.close()
       return rows
 
-    def Database_Reset(self):
-      my_db = self.get_connection()
-      cursor = my_db.cursor()
-      cursor.execute("DROP DATABASE IF EXISTS jiohotstar_ads")
-      cursor.execute("CREATE DATABASE IF NOT EXISTS jiohotstar_ads")
-      cursor.execute("USE jiohotstar_ads")
+    def Database_Reset(self,password):
+        if password != "Admin@123":
+            return 0
+        else:
+            my_db = self.get_connection()
+            cursor = my_db.cursor()
+            cursor.execute("DROP DATABASE IF EXISTS jiohotstar_ads")
+            cursor.execute("CREATE DATABASE IF NOT EXISTS jiohotstar_ads")
+            cursor.execute("USE jiohotstar_ads")
 
-      cursor.execute("SHOW DATABASES")
-      databases = cursor.fetchall()
+            cursor.execute("SHOW DATABASES")
+            databases = cursor.fetchall()
 
-      cursor.execute("USE jiohotstar_ads")
+            cursor.execute("USE jiohotstar_ads")
 
-      create_table_query = """
-      CREATE TABLE IF NOT EXISTS matches (
-          match_id INT PRIMARY KEY,
-          teams VARCHAR(255),
-          location VARCHAR(255),
-          match_type VARCHAR(100),
-          winner VARCHAR(255),
-          video_path VARCHAR(255) UNIQUE,
-          match_timestamp DATETIME NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-      """
+            create_table_query = """
+            CREATE TABLE IF NOT EXISTS matches (
+                match_id INT PRIMARY KEY,
+                teams VARCHAR(255),
+                location VARCHAR(255),
+                match_type VARCHAR(100),
+                winner VARCHAR(255),
+                video_path VARCHAR(255) UNIQUE,
+                match_timestamp DATETIME NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
 
-      cursor.execute(create_table_query)
-      my_db.commit()
+            cursor.execute(create_table_query)
+            my_db.commit()
 
-      print("Database and table have been reset and created successfully.")
+            print("Database and table have been reset and created successfully.")
 
-      cursor.close()
-      my_db.close()
+            cursor.close()
+            my_db.close()
+
+            return 1
+
 
 class Tracking:
     def __init__(self):
@@ -108,6 +119,7 @@ class Tracking:
 
     def ad_tracking_and_classwise_extraction(self,match_id, video_path, folder_path):
 
+        
         # Folder and file setup
         output_csv = video_path.replace(".mp4", "_ad_tracking_details.csv")
         output_frames_root = os.path.join(folder_path, "extracted_frames")
@@ -208,8 +220,8 @@ class GenAi_Chat:
     "content": f"You are a sql query generator. Generate a sql query based on the user input. only return the sql query.Only single query output,without any explaination or any other text. Tabel info is given below: {self.db.get_table_info()}"}]
     messages.append({"role": "user", "content": user_input})
     sql_invoke = self.llm.invoke(messages)
-    sql_query = str(sql_query).replace("```","")
     sql_query = str(sql_invoke.content).replace("```sql","")
+    sql_query = str(sql_query).replace("```","")
     return sql_query
   
   def NL_Response(self,sql_query,db_result):

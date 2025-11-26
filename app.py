@@ -1,15 +1,22 @@
-from polars import sql
 import streamlit as st
 from dotenv import load_dotenv
 import os
 import datetime
 import time
 import ollama
-from database import insert_match_data,Query,Query_a_Table
-from track import Tracking
-from chat_bot_integration import get_db,query_result
 
+from Base import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat
+
+# Load environment variables
+load_dotenv()
+
+
+Db_I = Database_Intergration()
 Track = Tracking()
+LC_db = lang_chain_db()
+GE = GenAi_Chat()
+
+
 
 st.set_page_config(page_title = "joihotstar Ads",
                    page_icon = "Jio",layout = "wide")
@@ -31,8 +38,8 @@ def MatchDataEntry():
     video_file = st.file_uploader("Upload match video", type=["mp4", "mov", "avi", "mkv"])
     if video_file is not None:
         st.info(f"Video will be saved to 'data/videos/{video_file.name}'")
-    
-  
+
+
 
     if st.button("Insert Data") and video_file is not None:
         if match_id and teams and location and match_type and winner and video_file :
@@ -44,8 +51,8 @@ def MatchDataEntry():
 
             try:
                 # Insert data into the database
-                insert_match_data(match_id, teams, location, match_type, winner, video_path, match_timestamp)
-                
+                Db_I.insert_match_data(match_id, teams, location, match_type, winner, video_path, match_timestamp)
+
                 # Save the uploaded video file
                 with open(video_path, "wb") as f:
                     f.write(video_file.getbuffer())
@@ -56,46 +63,54 @@ def MatchDataEntry():
                 with st.spinner("Running Ad Tracking..."):
                     Track.ad_tracking_and_classwise_extraction(match_id,video_path,folder_path)
                 st.success("Ad Tracking completed and results saved.")
-               
-                
+
+
             except Exception as e:
                 st.error(f"Error inserting data: {e}")
         else:
             st.error("Please fill out all required fields.")
 
     st.subheader("Current Tables in Database")
-    tables = Query("SHOW TABLES;")
+    tables = Db_I.Query("SHOW TABLES;")
     st.text(','.join([table[0] for table in tables]))
     st.subheader("Matches Table Data")
-    df = Query_a_Table("SELECT * FROM matches;")
+    df = Db_I.Query_a_Table("SELECT * FROM matches;")
     st.dataframe(df)
 
 def chat_interface():
-    model_name = "llama3.2:latest"  # replace with your actual model name
-    db = get_db()   
+    model_name = "llama3.2:1b"  # replace with your actual model name
+    db = LC_db.get_db()
 
     st.info("Databases Tables:")
     tables_names = db.get_table_names()
     st.table(tables_names,border='horizontal')
-    
-    messages = [{"role": "system", 
-    "content": f"You are a sql query generator. Generate a sql query based on the user input. only return the sql query.Only single query output,without any explaination or any other text. Tabel info is given below: {db.get_table_info()}"}]
+
     user_input = st.chat_input("Ask a question about the database")
     if user_input:
         with st.spinner("Generating SQL query..."):
-            messages.append({"role": "user", "content": user_input})
-            response = ollama.chat(model=model_name, messages=messages)
-            sql_query = response.message.content
+            sql_query = GE.sql_query_gen(user_input)
             st.write(sql_query)
-            sql_query = sql_query.replace('```sql',' ').replace('```','').strip()
             print(sql_query)
-            result = Query_a_Table(sql_query)
-            st.dataframe(result)
-            ans = query_result(chat_query=user_input,query_result=result)
-            st.markdown(ans)
+            result_from_database = Db_I.Query_a_Table(sql_query)
+            st.dataframe(result_from_database)
+            ans = GE.NL_Response(sql_query,result_from_database)
+            st.markdown(f""" {ans} """)
 
-st.navigation([MatchDataEntry,chat_interface],position='top').run()
+def Admin_Interface():
+    st.title("Admin Interface")
+    
+    password = st.text_input("Admin Password", type="password")
+    if st.button("Reset Database"):
+        with st.spinner("Resetting database..."):
+            if password:
+                DBR =Db_I.Database_Reset(password)
+                if DBR == 0:
+                    st.error("Incorrect password. Database reset aborted.")
+                else:
+                    st.success("Database has been reset.")
+                    st.info("You can now re-enter match data.")
+            
 
-
+st.navigation([MatchDataEntry,chat_interface,Admin_Interface],position='top').run()
 
 
