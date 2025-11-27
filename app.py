@@ -37,17 +37,17 @@ def MatchDataEntry():
     # Video upload
     video_file = st.file_uploader("Upload match video", type=["mp4", "mov", "avi", "mkv"])
     if video_file is not None:
-        st.info(f"Video will be saved to 'data/videos/{video_file.name}'")
+        st.info(f"Video will be saved to 'data\{match_id}\{video_file.name}'")
 
 
 
-    if st.button("Insert Data") and video_file is not None:
+    if st.button("Insert Data & Add Tracking") and video_file is not None:
         if match_id and teams and location and match_type and winner and video_file :
             # Folter create directory if not exists
-            folder_path = rf"data/{match_id}"
+            folder_path = f"data\{match_id}"
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
-            video_path = f"data/{match_id}/source_video.mp4"
+            video_path = f"data\{match_id}\source_video.mp4"
 
             try:
                 # Insert data into the database
@@ -74,17 +74,34 @@ def MatchDataEntry():
     tables = Db_I.Query("SHOW TABLES;")
     st.text(','.join([table[0] for table in tables]))
     st.subheader("Matches Table Data")
-    df = Db_I.Query_a_Table("SELECT * FROM matches;")
-    st.dataframe(df)
+    match_df = Db_I.Query_a_Table("SELECT * FROM matches;")
+    st.dataframe(match_df)
+    st.subheader(f"Brand Detections of Match_{match_id}")
+    try:
+        brand_detections_df = Db_I.Query_a_Table(f"SELECT * FROM brands WHERE match_id = {match_id};")
+        st.dataframe(brand_detections_df)
+    except Exception as e:
+        st.error(f"Once Add Tracking is run for Match ID {match_id}, the brand detections will be displayed here.The error is: {e}")
 
 def chat_interface():
-    model_name = "llama3.2:1b"  # replace with your actual model name
     db = LC_db.get_db()
-
-    st.info("Databases Tables:")
     tables_names = db.get_table_names()
-    st.table(tables_names,border='horizontal')
+    st.title("Database Overview")
+    st.info(f"Databases Tables: {', '.join(tables_names)}")
+    c1,c2=st.columns(2)
+    c1.subheader(f"{tables_names[0]} table Sample Data")
+    sql_query = Db_I.Query_a_Table(f"SELECT * FROM {tables_names[0]} LIMIT 1;")
+    c1.dataframe(sql_query)
+    try:
+        c2.subheader(f"{tables_names[1]} table Sample Data")
+        sql_query = Db_I.Query_a_Table(f"SELECT * FROM {tables_names[1]} LIMIT 1;")
+        c2.dataframe(sql_query)
+    except:
+        c2.info("Only one table in database")
 
+    # Chat Interface
+    st.title("Ai powered SQL Chatbot")
+    st.info("Ask questions about the database and get answers with SQL queries and results.")
     user_input = st.chat_input("Ask a question about the database")
     if user_input:
         with st.spinner("Generating SQL query..."):

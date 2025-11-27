@@ -11,6 +11,7 @@ import cv2
 from ultralytics import YOLO
 from langchain_google_genai import ChatGoogleGenerativeAI
 from google import genai
+import datetime as dt
 
 # Load environment variables
 load_dotenv()
@@ -153,19 +154,8 @@ class Tracking:
                     x1, y1, x2, y2 = box.xyxy[0].tolist()
 
                     class_name = results[0].names[cls_id]
-                    timestamp_sec = frame_no / fps
-
-                    # Record detection details in results list
-                    results_list.append({
-                        "match_id": match_id,
-                        "frame": frame_no,
-                        "time_sec": round(timestamp_sec, 2),
-                        "total_frames": total_frames,
-                        "brand": class_name,
-                        "confidence": round(conf, 3),
-                        "x1": int(x1), "y1": int(y1),
-                        "x2": int(x2), "y2": int(y2)
-                    })
+                    timestamp_sec = frame_no / fps # Calculate timestamp in second
+                    duration_sec = 1 / fps  # Duration of the frame in seconds
 
                     ## Save annotated frames class-wise
                     class_folder = os.path.join(output_frames_root, class_name)
@@ -177,12 +167,41 @@ class Tracking:
                     )
                     cv2.imwrite(filename, annotated_frame)
 
+                    # Record detection details in results list
+                    results_list.append({
+                        "match_id": match_id,
+                        "total_frames": total_frames,
+                        "frame_no": frame_no,
+                        "brand": class_name,
+                        "time_sec": round(timestamp_sec, 2),
+                        "duration_sec": round(duration_sec, 2),
+                        "confidence": round(conf, 3),
+                        "x1": int(x1), "y1": int(y1),
+                        "x2": int(x2), "y2": int(y2),
+                        "frame_path": filename,
+                        "Created_at": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    })
+
+                    
+
         cap.release()
 
         # Save CSV
         df = pd.DataFrame(results_list)
+        # Determine brand placement based on bounding box area
+        def Placemet(df):
+          Width = df['x2']-df['x1']
+          Height = df['y2']-df['y1']
+          df['Area'] = Width*Height
+          df['brand_position'] = df['Area'].apply(lambda x: 'Jersey' if x < 5000 else(
+                                                'Boundry' if (x > 5000) & (x < 10000) else(
+                                                    'Ground' if (x > 10000) & (x < 50000) else(
+                                                        'Overely'))))
+          return df
+        df = Placemet(df) 
+        df = df[['match_id', 'total_frames', 'frame_no', 'brand', 'brand_position', 'time_sec', 'duration_sec', 'confidence', 'frame_path', 'Created_at']]
         df.to_csv(output_csv, index=False)
-        df.to_sql("brand_detections", engine, if_exists="append", index=False)
+        df.to_sql(f"brands", engine, if_exists="append", index=False)
 
         print("✔ Process Completed!")
         print(f"CSV Saved → {output_csv}")
@@ -217,7 +236,28 @@ class GenAi_Chat:
     
   def sql_query_gen(self,user_input):
     messages = [{"role": "system", 
-    "content": f"You are a sql query generator. Generate a sql query based on the user input. only return the sql query.Only single query output,without any explaination or any other text. Tabel info is given below: {self.db.get_table_info()}"}]
+    "content": """ 
+                You are an expert data analyst that converts user questions into a single, syntactically correct SQL query.
+                Follow these rules:
+
+                Only use the tables, columns, and relationships provided in the context.
+
+                Do not invent new tables, columns, or joins.
+
+                If the context is insufficient, respond exactly with: ‘INSUFFICIENT_CONTEXT’.
+
+                Use {dialect} syntax and functions.
+
+                Prefer simple, readable queries with clear aliases and proper indentation.
+
+                Never run the query; only output the SQL.
+
+                Do not include explanations, comments, or natural language in the output.
+
+                Context (database schema and any relevant examples):
+                {context}""" .format(
+                        dialect=self.db.dialect, context=self.db.table_info
+                    )}]
     messages.append({"role": "user", "content": user_input})
     sql_invoke = self.llm.invoke(messages)
     sql_query = str(sql_invoke.content).replace("```sql","")
@@ -225,8 +265,22 @@ class GenAi_Chat:
     return sql_query
   
   def NL_Response(self,sql_query,db_result):
-    message = [{"role":"system","content":f"You are an expert an analyse the data from database. You will given sql query {sql_query}, output of a sql quey. you have to analyse the data . The Output of the sql query: {db_result} "}]
-    message.append({"role":"user","content":"Give 10 line summary in markdown code"})
+    message = [{"role":"system",
+                "content": """
+                You are a senior data analyst creating impressive, executive-ready summaries from SQL query results.  
+
+                **MANDATORY FORMAT** (use emojis, bold headings, bullets only):  
+                📊 **Key Insights** (1 sentence overview)  
+                🔥 **Top Highlights** (3-5 bullets with emojis)  
+                📈 **Trends & Patterns** (2-3 sentences on movements/correlations)  
+                💡 **Actionable Recommendations** (3 bullets with next steps)  
+
+                SQL Query: {query}  
+                Results: {results} 
+
+                Keep concise, use data-driven numbers, add business context. No fluff.
+                """.format(query=sql_query,results=db_result)}]
+    message.append({"role":"user","content":"Give the summary in markdown code "})
     response = self.llm.invoke(message)
     response = response.content
     return response
