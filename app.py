@@ -5,7 +5,7 @@ import datetime
 import time
 import ollama
 
-from Base import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat
+from Base import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat,visual_charts
 
 # Load environment variables
 load_dotenv()
@@ -15,6 +15,7 @@ Db_I = Database_Intergration()
 Track = Tracking()
 LC_db = lang_chain_db()
 GE = GenAi_Chat()
+chart = visual_charts()
 
 
 
@@ -83,6 +84,31 @@ def MatchDataEntry():
     except Exception as e:
         st.error(f"Once Add Tracking is run for Match ID {match_id}, the brand detections will be displayed here.The error is: {e}")
 
+def Add_Tracking_Visuals():
+    st.title("Add Tracking Visuals")
+    match_id = st.number_input("Enter Match ID for Visuals", min_value=1, step=1)
+    if st.button("Generate Visuals"):
+        with st.spinner("Generating Visuals..."):
+            try:
+                df = Db_I.Query_a_Table(f"SELECT * FROM brands WHERE match_id = {match_id};")
+                st.dataframe(df)
+                total1,total2,total3,total4 = st.columns(4,gap='small')
+                with total1:
+                    st.info("Total Frames",icon='🚅')
+                    st.metric(label="Total frames formed in video",value=f"{chart.total_frames(df)}",border=True,)
+                with total2:
+                    st.info("Total Time",icon='🚦')
+                    st.metric(label="Total video time in seconds",value=f"{chart.total_time(df)}",border=True,)
+                with total3:
+                    st.info("Total Brands",icon='💺')
+                    st.metric(label="Total brands detected",value=f"{chart.total_brands(df)}",border=True,)
+                with total4:
+                    st.info("Total Placements",icon='💊')
+                    st.metric(label="Total placements of brands detected",value=f"{chart.total_placement(df)}",border=True,)
+                
+            except Exception as e:
+                st.error(f"Error fetching brand data: {e}")
+            
 def chat_interface():
     db = LC_db.get_db()
     tables_names = db.get_table_names()
@@ -128,6 +154,6 @@ def Admin_Interface():
                     st.info("You can now re-enter match data.")
             
 
-st.navigation([MatchDataEntry,chat_interface,Admin_Interface],position='top').run()
+st.navigation([MatchDataEntry,Add_Tracking_Visuals,chat_interface,Admin_Interface],position='top').run()
 
 

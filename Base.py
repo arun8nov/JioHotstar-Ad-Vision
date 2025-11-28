@@ -1,4 +1,3 @@
-from turtle import st
 import mysql.connector
 import sqlalchemy
 from dotenv import load_dotenv
@@ -12,6 +11,13 @@ from ultralytics import YOLO
 from langchain_google_genai import ChatGoogleGenerativeAI
 from google import genai
 import datetime as dt
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import plotly.io as pio
+pio.templates.default = "plotly_dark"
+import warnings
+warnings.filterwarnings('ignore')
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +32,14 @@ api_key = os.getenv("api_key")
 engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
 model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
 model = YOLO(model_path)
+
+my_col = [
+    '#0bb4ff',
+    '#50e991',
+    '#e6d800',
+    '#9b19f5',
+    '#ffa300'
+]
 
 class Database_Intergration:
 
@@ -284,3 +298,136 @@ class GenAi_Chat:
     response = self.llm.invoke(message)
     response = response.content
     return response
+
+class visual_charts:
+  def __init__(self):
+    pass
+
+  # KPIs
+  def total_frames(self,df):
+    return df['total_frames'].max()
+
+  def total_time(self,df):
+    return df['time_sec'].max()
+
+  def total_brands(self,df):
+    return len(df['brand'].unique())
+
+  def total_placement(self,df):
+    return len(df['brand_position'].unique())
+
+  def brand_count(self,df):
+    t_df = df['brand'].value_counts().reset_index()
+    fig = px.bar(
+        data_frame=t_df,
+        x = 'brand',
+        y = 'count',
+        title='Brand Apperance frame count',
+        color = 'count',
+        color_continuous_scale=my_col
+    )
+
+    fig.update_layout(
+              title ={'x':0.25},
+          )
+    fig.update_coloraxes(showscale=False)
+
+    return fig
+
+  def placement_count(self,df):
+    t_df = df['brand_position'].value_counts().reset_index()
+    fig = px.bar(
+        data_frame=t_df,
+        x = 'count',
+        y = 'brand_position',
+        color= 'count',
+        title='Brand Position frame counts',
+        color_continuous_scale=my_col
+    )
+
+    fig.update_layout(
+              title ={'x':0.25},
+              showlegend = False,
+          )
+    fig.update_coloraxes(showscale=False)
+
+    return fig
+
+  def dis_frame_count(self,df):
+    fig = px.imshow(df.pivot_table(index='brand', columns='brand_position', values='time_sec',aggfunc='count'),
+                    text_auto=True,
+                    title = "Brand and its Placement frame count")
+    fig.update_layout(
+              title ={'x':0.5},
+              showlegend = False,
+              xaxis = dict(side='top',showgrid=False),
+              yaxis = dict(showgrid=False)
+          )
+    fig.update_coloraxes(showscale=False)
+    return fig
+
+  def frame_trend(self,df):
+    t_df = df['frame_no'].value_counts().sort_index().reset_index()
+    fig = px.area(
+        data_frame=t_df,
+        x='frame_no',
+        y = 'count',
+        title='Brand Detection trent over Frame',
+        color_discrete_sequence=my_col
+    )
+    fig.update_layout(
+                  title ={'x':0.5},
+                  showlegend = False,
+                  xaxis = dict(showgrid=False,rangeslider=dict(visible=True)),
+                  yaxis = dict(showgrid=True)
+    )
+    fig.update_coloraxes(showscale=False)
+
+    return fig
+
+  def brand_confidence(self,df):
+    t_df = df.groupby('brand')['confidence'].mean().reset_index()
+    t_df['confidence'] = round(t_df['confidence']*100,2)
+    fig =  px.bar(data_frame=t_df,
+                  x = 'confidence',
+                  y = 'brand',
+                  color = 'confidence',
+                  color_continuous_scale=my_col)
+    fig.update_layout(
+                  title ={'x':0.25},
+                  showlegend = False,
+              )
+    fig.update_coloraxes(showscale=False)
+
+    return fig
+
+  def brand_detection_time(self,df):
+    t_df = df.groupby('brand')['duration_sec'].sum().reset_index()
+    fig = px.bar(data_frame=t_df,
+                x='brand',
+                y='duration_sec',
+                color='duration_sec',
+                color_continuous_scale=my_col,
+                title = 'Brand Detection Time',)
+    fig.update_layout(
+                  title ={'x':0.25},
+                  showlegend = False,
+              )
+    fig.update_coloraxes(showscale=False)
+
+    return fig
+
+  def brand_time_dist(self,df):
+
+      fig = px.imshow(df.pivot_table(index='brand', columns='brand_position', values='duration_sec',aggfunc='sum'),
+                      text_auto=True,
+                      title = "Brand and its Placement apperance duration in seconds")
+      fig.update_layout(
+                title ={'x':0.5},
+                showlegend = False,
+                xaxis = dict(side='top',showgrid=False),
+                yaxis = dict(showgrid=False)
+            )
+      fig.update_coloraxes(showscale=False)
+
+      return fig
