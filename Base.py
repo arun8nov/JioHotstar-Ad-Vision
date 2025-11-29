@@ -1,27 +1,36 @@
+# SQL Dependencies
 import mysql.connector
 import sqlalchemy
+# System Dependencies
 from dotenv import load_dotenv
 import os
-import pandas as pd
-import streamlit as st
-from langchain_community.utilities import SQLDatabase
-import ollama
 import cv2
-from ultralytics import YOLO
-from langchain_google_genai import ChatGoogleGenerativeAI
-from google import genai
 import datetime as dt
+# Data & Visual Dependencies
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 import plotly.io as pio
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+# Set default plotly template
 pio.templates.default = "plotly_dark"
+# Model Dependencies
+from ultralytics import YOLO
+from langchain_community.utilities import SQLDatabase
+from langchain_google_genai import ChatGoogleGenerativeAI
+from google import genai
+
+import math
+import streamlit as st
 import warnings
 warnings.filterwarnings('ignore')
 
 # Load environment variables
 load_dotenv()
 
+# Database & LLM Api integration
 db_host = os.getenv("db_host")
 db_user = os.getenv("db_user")
 db_password = os.getenv("db_password")
@@ -32,7 +41,7 @@ api_key = os.getenv("api_key")
 engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
 model_path = r"D:\GIT\JioHotstar-Ad-Vision\models\Ad_track.pt"
 model = YOLO(model_path)
-
+# color code initialization
 my_col = [
     '#0bb4ff',
     '#50e991',
@@ -41,6 +50,7 @@ my_col = [
     '#ffa300'
 ]
 
+# Database class
 class Database_Intergration:
 
     def __init__(self):
@@ -57,7 +67,7 @@ class Database_Intergration:
                 database=db_name
             )
         return Conn
-
+    # define engine for data injection
     def sql_engine(self):
         engine = sqlalchemy.create_engine(f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
         return engine
@@ -74,12 +84,12 @@ class Database_Intergration:
         conn.commit()
         cursor.close()
         conn.close()
-
+    # Function to retrive data as table view from database
     def Query_a_Table(self,Q):
       df = pd.read_sql(Q,self.get_connection())
       return df
 
-
+    # Function to run SQL query and get the data 
     def Query(self,Q):
       conn = self.get_connection()
       cursor = conn.cursor()
@@ -88,7 +98,8 @@ class Database_Intergration:
       cursor.close()
       conn.close()
       return rows
-
+    
+    # Function to reset Database
     def Database_Reset(self,password):
         if password != "Admin@123":
             return 0
@@ -127,11 +138,11 @@ class Database_Intergration:
 
             return 1
 
-
+# Video Ad Tracking class
 class Tracking:
     def __init__(self):
         pass
-
+    # Ad Tracting Function
     def ad_tracking_and_classwise_extraction(self,match_id, video_path, folder_path):
 
         
@@ -179,6 +190,7 @@ class Tracking:
                         class_folder,
                         f"frame_{frame_no:06d}.jpg"
                     )
+                    # Save the frame
                     cv2.imwrite(filename, annotated_frame)
 
                     # Record detection details in results list
@@ -202,6 +214,7 @@ class Tracking:
 
         # Save CSV
         df = pd.DataFrame(results_list)
+        # ETL 
         # Determine brand placement based on bounding box area
         def Placemet(df):
           Width = df['x2']-df['x1']
@@ -212,9 +225,11 @@ class Tracking:
                                                     'Ground' if (x > 10000) & (x < 50000) else(
                                                         'Overely'))))
           return df
+    
         df = Placemet(df) 
         df = df[['match_id', 'total_frames', 'frame_no', 'brand', 'brand_position', 'time_sec', 'duration_sec', 'confidence', 'frame_path', 'Created_at']]
         df.to_csv(output_csv, index=False)
+        # data injection to SQL Database
         df.to_sql(f"brands", engine, if_exists="append", index=False)
 
         print("✔ Process Completed!")
@@ -222,32 +237,25 @@ class Tracking:
         print(f"Frames Saved → {output_frames_root}")
 
 
-
+# Langchain class 
 class lang_chain_db:
   def __init__(self):
     pass
-
+  # Initialize database using langchain
   def get_db(self):
       db_path = f"mysql+mysqlconnector://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
       db = SQLDatabase.from_uri(db_path)
       return db
 
-  def query_result(self,chat_query,query_result, model_name="llama3.2:1b"):
-      messages = [
-          {"role": "system", "content": f"You are a helpful assistant that translates database query results into simple natural language. Given previouse query from user : {chat_query}"},
-          {"role": "user", "content": f"Translate this database query result into a clear explanation: {query_result}"}
-      ]
-
-      response = ollama.chat(model=model_name, messages=messages)
-      return response.message.content
-  
+# GenAi interface class
 class GenAi_Chat:
   def __init__(self):
     pass
-  
+  # Mdoel and database initialization
   llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key)
   db = lang_chain_db().get_db()
-    
+
+  # Function to get sql query from user input 
   def sql_query_gen(self,user_input):
     messages = [{"role": "system", 
     "content": """ 
@@ -278,6 +286,7 @@ class GenAi_Chat:
     sql_query = str(sql_query).replace("```","")
     return sql_query
   
+  # Fuction to generate sql result into summary insight
   def NL_Response(self,sql_query,db_result):
     message = [{"role":"system",
                 "content": """
@@ -299,6 +308,7 @@ class GenAi_Chat:
     response = response.content
     return response
 
+# Dashboard charts
 class visual_charts:
   def __init__(self):
     pass
@@ -316,6 +326,7 @@ class visual_charts:
   def total_placement(self,df):
     return len(df['brand_position'].unique())
 
+  # Brand Frame bar chart
   def brand_count(self,df):
     t_df = df['brand'].value_counts().reset_index()
     fig = px.bar(
@@ -334,6 +345,7 @@ class visual_charts:
 
     return fig
 
+  # Brand Placement bar chart
   def placement_count(self,df):
     t_df = df['brand_position'].value_counts().reset_index()
     fig = px.bar(
@@ -353,6 +365,7 @@ class visual_charts:
 
     return fig
 
+  # head map of brand and brand postion count
   def dis_frame_count(self,df):
     fig = px.imshow(df.pivot_table(index='brand', columns='brand_position', values='time_sec',aggfunc='count'),
                     text_auto=True,
@@ -366,6 +379,7 @@ class visual_charts:
     fig.update_coloraxes(showscale=False)
     return fig
 
+  # Line chart of frameno count of brand detection
   def frame_trend(self,df):
     t_df = df['frame_no'].value_counts().sort_index().reset_index()
     fig = px.area(
@@ -385,6 +399,7 @@ class visual_charts:
 
     return fig
 
+  # Confidence level of each brand in bar chart
   def brand_confidence(self,df):
     t_df = df.groupby('brand')['confidence'].mean().reset_index()
     t_df['confidence'] = round(t_df['confidence']*100,2)
@@ -401,6 +416,7 @@ class visual_charts:
 
     return fig
 
+  # Detection time of the brand in sec
   def brand_detection_time(self,df):
     t_df = df.groupby('brand')['duration_sec'].sum().reset_index()
     fig = px.bar(data_frame=t_df,
@@ -417,17 +433,46 @@ class visual_charts:
 
     return fig
 
+  # Head map of brand and it's position time duration
   def brand_time_dist(self,df):
 
-      fig = px.imshow(df.pivot_table(index='brand', columns='brand_position', values='duration_sec',aggfunc='sum'),
-                      text_auto=True,
-                      title = "Brand and its Placement apperance duration in seconds")
-      fig.update_layout(
-                title ={'x':0.5},
-                showlegend = False,
-                xaxis = dict(side='top',showgrid=False),
-                yaxis = dict(showgrid=False)
-            )
-      fig.update_coloraxes(showscale=False)
+    fig = px.imshow(df.pivot_table(index='brand', columns='brand_position', values='duration_sec',aggfunc='sum'),
+                    text_auto=True,
+                    title = "Brand and its Placement apperance duration in seconds")
+    fig.update_layout(
+              title ={'x':0.5},
+              showlegend = False,
+              xaxis = dict(side='top',showgrid=False),
+              yaxis = dict(showgrid=False)
+          )
+    fig.update_coloraxes(showscale=False)
 
-      return fig
+    return fig
+
+  # Brand Distribution over time frame in ms
+  def brand_distribution_over_time(self,df):
+    n_col = 2
+    n_row = math.ceil(df['brand'].nunique()/2)
+    fig = make_subplots(rows=n_row, cols=n_col, subplot_titles=df['brand'].unique())
+    for i in range(len(df['brand'].unique())):
+      col = df['brand'].unique()[i]
+      curr_row = i//n_col + 1
+      curr_col = i%n_col + 1
+
+      t_df = df[df['brand'] == col]
+
+      fig.add_trace(
+          go.Histogram(x=t_df['time_sec'],
+                      name=col,
+                      ),
+          row=curr_row,
+          col=curr_col
+      )
+    fig.update_layout(
+                    title ={'text': "Histogram of Time by Brand",'x':0.5},
+                    showlegend = False,
+                    width=1000,
+                    height=800
+                  )
+
+    return fig

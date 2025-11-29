@@ -1,11 +1,11 @@
 import streamlit as st
-from dotenv import load_dotenv
 import os
 import datetime
 import time
-import ollama
+from dotenv import load_dotenv
 
-from Base import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat,visual_charts
+# Load predefined function using class and object methode
+from Base1 import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat,visual_charts
 
 # Load environment variables
 load_dotenv()
@@ -18,14 +18,19 @@ GE = GenAi_Chat()
 chart = visual_charts()
 
 
+# Web page title & icon
+st.set_page_config(page_title = "Ai-powerd Criket ads regonition",
+                   page_icon = "🏏",layout = "wide")
 
-st.set_page_config(page_title = "joihotstar Ads",
-                   page_icon = "Jio",layout = "wide")
 
+
+
+# Match details Entry and Ad Tracking
 def MatchDataEntry():
-
-    st.title("Match Data Entry")
-
+    # Seeting up Front Image
+    c1,c2 = st.columns([0.3,2])
+    c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\front_logo.png") # Seeting up Logo
+    c2.title("Match Data Entry") # Seeting up Logo and Title
     # Match Data Input Fields
     c1,c2,c3=st.columns(3)
     match_id = c1.number_input("Match ID", min_value=1, step=1)
@@ -83,9 +88,12 @@ def MatchDataEntry():
         st.dataframe(brand_detections_df)
     except Exception as e:
         st.error(f"Once Add Tracking is run for Match ID {match_id}, the brand detections will be displayed here.The error is: {e}")
-
+    st.image(r"D:\GIT\JioHotstar-Ad-Vision\images\front_image.png",width=1400,channels="RGB",output_format="auto")
+# Visual chart of ad trackers
 def Add_Tracking_Visuals():
-    st.title("Add Tracking Visuals")
+    c1,c2 = st.columns([0.3,2])
+    c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\eye_logo.png") # Seeting up Logo
+    c2.title("Add Tracking Visuals") # Seeting up Logo and Title
     match_id = st.number_input("Enter Match ID for Visuals", min_value=1, step=1)
     if st.button("Generate Visuals"):
         with st.spinner("Generating Visuals..."):
@@ -94,22 +102,41 @@ def Add_Tracking_Visuals():
                 st.dataframe(df)
                 total1,total2,total3,total4 = st.columns(4,gap='small')
                 with total1:
-                    st.info("Total Frames",icon='🚅')
+                    st.info("Total Frames",icon='🎞️')
                     st.metric(label="Total frames formed in video",value=f"{chart.total_frames(df)}",border=True,)
                 with total2:
-                    st.info("Total Time",icon='🚦')
+                    st.info("Total Time",icon='🕒')
                     st.metric(label="Total video time in seconds",value=f"{chart.total_time(df)}",border=True,)
                 with total3:
-                    st.info("Total Brands",icon='💺')
+                    st.info("Total Brands",icon='🏷️')
                     st.metric(label="Total brands detected",value=f"{chart.total_brands(df)}",border=True,)
                 with total4:
-                    st.info("Total Placements",icon='💊')
+                    st.info("Total Placements",icon='🎯')
                     st.metric(label="Total placements of brands detected",value=f"{chart.total_placement(df)}",border=True,)
-                
+
+                c1,c2,c3 = st.columns(3)
+                c1.plotly_chart(chart.brand_count(df))
+                c2.plotly_chart(chart.placement_count(df))
+                c3.plotly_chart(chart.dis_frame_count(df))
+
+                c1,c2 = st.columns([3,2])
+                c1.plotly_chart(chart.frame_trend(df))
+                c2.plotly_chart(chart.brand_confidence(df))
+
+                c1,c2 = st.columns(2)
+                c1.plotly_chart(chart.brand_detection_time(df))
+                c2.plotly_chart(chart.brand_time_dist(df))
+
+                st.plotly_chart(chart.brand_distribution_over_time(df))
+
             except Exception as e:
                 st.error(f"Error fetching brand data: {e}")
-            
+
+# Ai powerd SQL Rag
 def chat_interface():
+    c1,c2 = st.columns([0.3,2])
+    c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\chat_logo.png") # Seeting up Logo
+    c2.title("Chat Interface") # Seeting up Logo and Title
     db = LC_db.get_db()
     tables_names = db.get_table_names()
     st.title("Database Overview")
@@ -128,22 +155,26 @@ def chat_interface():
     # Chat Interface
     st.title("Ai powered SQL Chatbot")
     st.info("Ask questions about the database and get answers with SQL queries and results.")
+    # User chatbox
     user_input = st.chat_input("Ask a question about the database")
     if user_input:
         with st.spinner("Generating SQL query..."):
+            # LLM Querying
             sql_query = GE.sql_query_gen(user_input)
             st.write(sql_query)
             print(sql_query)
             result_from_database = Db_I.Query_a_Table(sql_query)
             st.dataframe(result_from_database)
+            # LLM Ans
             ans = GE.NL_Response(sql_query,result_from_database)
             st.markdown(f""" {ans} """)
 
+# Admin control
 def Admin_Interface():
     st.title("Admin Interface")
-    
+
     password = st.text_input("Admin Password", type="password")
-    if st.button("Reset Database"):
+    if st.button("Reset Database"): # Database reset
         with st.spinner("Resetting database..."):
             if password:
                 DBR =Db_I.Database_Reset(password)
@@ -152,8 +183,6 @@ def Admin_Interface():
                 else:
                     st.success("Database has been reset.")
                     st.info("You can now re-enter match data.")
-            
+
 
 st.navigation([MatchDataEntry,Add_Tracking_Visuals,chat_interface,Admin_Interface],position='top').run()
-
-
