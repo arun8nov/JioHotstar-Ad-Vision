@@ -5,7 +5,7 @@ import time
 from dotenv import load_dotenv
 
 # Load predefined function using class and object methode
-from Base1 import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat,visual_charts
+from Base import Database_Intergration,Tracking,lang_chain_db,GenAi_Chat,visual_charts
 
 # Load environment variables
 load_dotenv()
@@ -28,7 +28,7 @@ st.set_page_config(page_title = "Ai-powerd Criket ads regonition",
 # Match details Entry and Ad Tracking
 def MatchDataEntry():
     # Seeting up Front Image
-    c1,c2 = st.columns([0.3,2])
+    c1,c2 = st.columns([0.3,4])
     c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\front_logo.png") # Seeting up Logo
     c2.title("Match Data Entry") # Seeting up Logo and Title
     # Match Data Input Fields
@@ -91,7 +91,7 @@ def MatchDataEntry():
     st.image(r"D:\GIT\JioHotstar-Ad-Vision\images\front_image.png",width=1400,channels="RGB",output_format="auto")
 # Visual chart of ad trackers
 def Add_Tracking_Visuals():
-    c1,c2 = st.columns([0.3,2])
+    c1,c2 = st.columns([0.3,4])
     c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\eye_logo.png") # Seeting up Logo
     c2.title("Add Tracking Visuals") # Seeting up Logo and Title
     match_id = st.number_input("Enter Match ID for Visuals", min_value=1, step=1)
@@ -134,7 +134,7 @@ def Add_Tracking_Visuals():
 
 # Ai powerd SQL Rag
 def chat_interface():
-    c1,c2 = st.columns([0.3,2])
+    c1,c2 = st.columns([0.3,4])
     c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\chat_logo.png") # Seeting up Logo
     c2.title("Chat Interface") # Seeting up Logo and Title
     db = LC_db.get_db()
@@ -171,7 +171,9 @@ def chat_interface():
 
 # Admin control
 def Admin_Interface():
-    st.title("Admin Interface")
+    c1,c2 = st.columns([0.3,4])
+    c1.image(r"D:\GIT\JioHotstar-Ad-Vision\images\admin_logo.png") # Seeting up Logo
+    c2.title("Admin Interface") # Seeting up Logo and Title
 
     password = st.text_input("Admin Password", type="password")
     if st.button("Reset Database"): # Database reset
