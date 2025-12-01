@@ -15,11 +15,11 @@ opencv-python
 
 # SQL packages
 mysql-connector-python
-pymysql
 SQLAlchemy
 cryptography # authentication plug in
 
-dotenv
+# Environment variables
+python-dotenv
 
 # Yolo
 ultralytics
@@ -27,11 +27,8 @@ ultralytics
 # Rag
 langchain
 langchain_community
-langchain_ollama
 langchain-experimental
-ollama
 langchain_google_genai
-langgraph
 langchain_core
 pydantic
 
