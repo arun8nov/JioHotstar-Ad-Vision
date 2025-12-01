@@ -6,6 +6,8 @@
 
 JioHotstar Ad Vision is a comprehensive application designed to track and analyze brand advertisements in cricket match videos. Leveraging AI and Computer Vision, it detects brand logos, tracks their screen time, and provides detailed analytics. The system also features a GenAI-powered chatbot for natural language database querying.
 
+![image](Readme_image.png)
+
 ## Technical Implementation
 
 The project is built using Python and relies on several key libraries and technologies. The core logic is encapsulated in `Base.py`, while the user interface is built with Streamlit in `app.py`.
@@ -111,3 +113,11 @@ The application is built using **Streamlit** and is organized into four main sec
 2.  **View Analytics**: Go to **Add Tracking Visuals**, enter the Match ID, and click "Generate Visuals" to see the dashboard.
 3.  **Ask Questions**: Go to **Chat Interface** and ask questions like "Show me the top 5 brands by duration".
 4.  **Reset System**: Go to **Admin Interface**, enter the password (`Admin@123`), and click "Reset Database" to clear all data.
+
+## Author
+
+Arunprakash B
+
+Mail: arunbabuprakash@gmail.com
+
+Linkedin: https://www.linkedin.com/in/arun8nov/
