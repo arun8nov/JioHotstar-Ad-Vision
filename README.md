@@ -6,7 +6,7 @@
 
 JioHotstar Ad Vision is a comprehensive application designed to track and analyze brand advertisements in cricket match videos. Leveraging AI and Computer Vision, it detects brand logos, tracks their screen time, and provides detailed analytics. The system also features a GenAI-powered chatbot for natural language database querying.
 
-![image](Readme_image.png)
+![image](Readme-image.png)
 
 ## Technical Implementation
 
