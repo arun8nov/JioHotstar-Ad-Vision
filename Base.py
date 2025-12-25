@@ -166,6 +166,10 @@ class Tracking:
 
             frame_no += 1
 
+            # Process only 1 frame per second
+            #if frame_no % fps != 0:
+            #    continue
+
             # YOLO Tracking
             results = model.track(frame, verbose=False)
             boxes = results[0].boxes
@@ -371,9 +375,9 @@ class visual_charts:
                     text_auto=True,
                     title = "Brand and its Placement frame count")
     fig.update_layout(
-              title ={'x':0.5},
+              title ={'x':0.3},
               showlegend = False,
-              xaxis = dict(side='top',showgrid=False),
+              xaxis = dict(showgrid=False),
               yaxis = dict(showgrid=False)
           )
     fig.update_coloraxes(showscale=False)
@@ -390,7 +394,7 @@ class visual_charts:
         color_discrete_sequence=my_col
     )
     fig.update_layout(
-                  title ={'x':0.5},
+                  title ={'x':0.3},
                   showlegend = False,
                   xaxis = dict(showgrid=False,rangeslider=dict(visible=True)),
                   yaxis = dict(showgrid=True)
@@ -407,7 +411,8 @@ class visual_charts:
                   x = 'confidence',
                   y = 'brand',
                   color = 'confidence',
-                  color_continuous_scale=my_col)
+                  color_continuous_scale=my_col,
+                  title = 'Brand Confidence Level')
     fig.update_layout(
                   title ={'x':0.25},
                   showlegend = False,
@@ -440,9 +445,9 @@ class visual_charts:
                     text_auto=True,
                     title = "Brand and its Placement apperance duration in seconds")
     fig.update_layout(
-              title ={'x':0.5},
+              title ={'x':0.3},
               showlegend = False,
-              xaxis = dict(side='top',showgrid=False),
+              xaxis = dict(showgrid=False),
               yaxis = dict(showgrid=False)
           )
     fig.update_coloraxes(showscale=False)
@@ -469,7 +474,7 @@ class visual_charts:
           col=curr_col
       )
     fig.update_layout(
-                    title ={'text': "Histogram of Time by Brand",'x':0.5},
+                    title ={'text': "Histogram of Time by Brand",'x':0.45},
                     showlegend = False,
                     width=1000,
                     height=800
